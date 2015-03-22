@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Page Title</title>
+
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
+	<script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+	<script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+	
+
+</head>
+<body>
+
+<div data-role="page" id="page">
+
+	<div data-role="header" data-position="fixed" data-tap-toggle="false">
+	      <a id="randSelect" href="#" 
+		class="ui-btn-left ui-btn ui-btn-inline ui-mini ui-corner-all ui-btn-icon-left ui-icon-star">
+		Random</a>	
+		<h1>RandNotes</h1>
+		<a id="deleteAll" href="#" 
+		class="ui-btn-right ui-btn ui-btn-inline ui-mini ui-corner-all ui-btn-icon-right ui-icon-delete">
+		Delete</a>
+	</div><!-- /header -->
+
+	<div role="main" class="ui-content" id="content"> 
+		
+	</div><!-- /content -->
+
+	<div data-role="footer" data-position="fixed" data-tap-toggle="false">		
+		<textarea name="note" id="note"></textarea>
+	</div><!-- /footer -->
+</div><!-- /page -->
+
+
+
+
+<script>
+  
+  var noteModule = function () {
+  
+    // Inject and display Popup at runtime for randomly selected Note
+    function _runtimePopup(id,msg){
+      if(!msg || !id){
+	return;
+      }
+      var popupTemplate = "<div data-role='popup' id='"+id+"' data-position-to='window'><p>"+msg+"</p></div>";    
+      $("#"+id).remove();
+      $("#content").append(popupTemplate).enhanceWithin();
+      $("#"+id).popup( "open", "dismissible", false  );
+    }
+  
+    // Returns a random integer between min (included) and max (excluded)
+    // Using Math.round() will give you a non-uniform distribution!
+    function _getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min)) + min;
+    }
+  
+    // Save Note in Local Storage
+    function _saveNote(sNote){
+    
+      if(!sNote.trim()){
+	return;
+      }
+      
+      if(typeof(Storage) !== "undefined") {	
+	var uniqid = Date.now();
+	localStorage.setItem(uniqid,sNote);	    
+      } else {
+	console.error("Local Storage is not supported in your Browser!");
+      }
+      
+     _displayNotes();      
+    }
+    
+    // Display Notes
+    function _displayNotes(){
+    
+      if(localStorage.length === 0){
+	$("#content").empty().append("<p style='text-align:center;padding-top:2em;font-weight:bold;'>No notes have been added yet!</p>");
+	$("#content").enhanceWithin();
+	return;
+      }
+          
+      // Create Note list if not already done
+      if($("#noteList").length === 0) {
+	$("#content").empty().append("<ul data-role='listview' id='noteList'></ul>");
+      }
+      
+      //Sort Local Storage keys
+      var aLocalStoryageKeys  = [];
+      for(key in localStorage){
+	aLocalStoryageKeys.push(key);
+      }
+      aLocalStoryageKeys.sort();
+      
+      
+      // Display all notes from local storage
+      if ($("#noteList li").length === 0){ // Add Notes to newly created list
+	for(var i=0;i<aLocalStoryageKeys.length;i++){
+	  $("#noteList").append("<li>" + localStorage.getItem(aLocalStoryageKeys[i]) + "</li>");	     
+	}
+	$("#noteList").listview().enhanceWithin();
+       }else{ // Append new Note to already existing list
+ 	$("<li>" + localStorage.getItem(aLocalStoryageKeys[aLocalStoryageKeys.length-1]) + "</li>").insertAfter("#noteList > li:last-of-type");
+ 	$("#noteList").listview( "refresh" );
+       }     
+    }
+    
+    //Clear Local Storage
+    function _initContent(){
+      $("#content").empty().append("");
+      localStorage.clear(); 
+      _displayNotes();
+    }
+    
+
+    // Init Event handler
+    function init() {  
+      
+      // DEBUG
+      //localStorage.clear();
+  
+      // Submit Note when Enter key pressed
+      $("#note").keypress(function (e) {
+	if (e.which == 13) {
+	  e.preventDefault();
+	  var sNoteText = $(this).val().trim();
+	  if(sNoteText){
+	    $(this).val("");
+	    _saveNote(sNoteText);    
+	  }
+      	}
+      });
+      
+      
+      //Delete Notes when Delete Button pressed
+      $("#deleteAll").tap(function(e){
+	e.preventDefault();  
+	_initContent();
+      });
+      
+      
+      //Randomly select Note
+       $("#randSelect").tap(function(e){     
+	var iRandNoteIndex = _getRandomInt(0,localStorage.length);
+	var sNote = localStorage.getItem(localStorage.key(iRandNoteIndex));
+	_runtimePopup("randNotePopup",sNote);
+       });
+        
+      // Display the existing Notes (stored in Local Storage)
+      _displayNotes();
+    }
+  
+    return { // public module functions
+        init: init
+    };
+  }();
+
+  
+  
+  // Initialize Module
+  $( document ).on( "pagecreate", "#page", function( event ) {     
+    noteModule.init();   
+  });
+  
+</script>
+
+</body>
+</html>
